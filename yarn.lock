@@ -8076,6 +8076,11 @@ prettier-linter-helpers@^1.0.0:
   dependencies:
     fast-diff "^1.1.2"
 
+prettier-plugin-md-nocjsp@^1.2.0:
+  version "1.4.0"
+  resolved "https://registry.yarnpkg.com/prettier-plugin-md-nocjsp/-/prettier-plugin-md-nocjsp-1.4.0.tgz#a82dad2adbd9655df046d4e8d75ec69876bcfa90"
+  integrity sha512-w8N5N7w5lSVj+kX4d9fYU3xeFdxh/CkoYHy7CojtZJCkwOZXrTBvymJMnnOjBLNseTJ24j0q+BlmpkTNq+rxbg==
+
 prettier-plugin-solidity@^1.0.0-beta.13:
   version "1.0.0-beta.19"
   resolved "https://registry.yarnpkg.com/prettier-plugin-solidity/-/prettier-plugin-solidity-1.0.0-beta.19.tgz#7c3607fc4028f5e6a425259ff03e45eedf733df3"

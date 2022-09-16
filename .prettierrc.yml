@@ -1,0 +1,19 @@
+semi: true
+tabWidth: 2
+printWidth: 120
+singleQuote: true
+trailingComma: 'all'
+arrowParens: 'avoid'
+# *snip*
+overrides:
+  - files:
+      - '*.md'
+      - README
+    options:
+      parser: markdown-nocjsp
+      quickFix: true
+  - files:
+      - '*.mdx'
+    options:
+      parser: mdx-nocjsp
+      quickFix: true

@@ -33,7 +33,8 @@
     "solhint": "^3.3.6",
     "ts-node": "^10.1.0",
     "typechain": "^5.1.2",
-    "typescript": "^4.5.2"
+    "typescript": "^4.5.2",
+    "prettier-plugin-md-nocjsp": "^1.2.0"
   },
   "dependencies": {
     "@nomiclabs/hardhat-ethers": "^2.0.0",
