@@ -19,12 +19,15 @@ describe('StakingV2', () => {
     const OriginalNFT = await ethers.getContractFactory('OriginalNFT', admin);
     originalNft = await (await OriginalNFT.deploy('OriginalNFT', 'OriginalNFT')).deployed();
     const NFT = await ethers.getContractFactory('StakableNFT', admin);
-    nft = await (await NFT.deploy('NFT', 'NFT', originalNft.address)).deployed();
+    nft = await (
+      await NFT.deploy('NFT', 'NFT', originalNft.address, 'FT', 'FT', ETH('1'))
+    ).deployed();
   });
 
-  it('FTのデプロイ', async () => {
-    const FT = await ethers.getContractFactory('StakableFT', admin);
-    ft = await (await FT.deploy('FT', 'FT', nft.address, ETH('1'))).deployed();
+  it('FTのインスタンス化', async () => {
+    const FT = await ethers.getContractFactory('StakableFT');
+    const address = await nft.ft();
+    ft = await new ethers.Contract(address, FT.interface.format(), admin);
   });
 
   it('AにNFTをミント', async () => {
@@ -38,7 +41,7 @@ describe('StakingV2', () => {
 
   it('AにFTをミント', async () => {
     const amount = ETH('10');
-    const mintFT = await ft.mint(userA.address, amount);
+    const mintFT = await nft.mintFT(userA.address, amount);
     await mintFT.wait();
   });
 
@@ -95,5 +98,30 @@ describe('StakingV2', () => {
     expect(balanceOfA).to.equal(ETH('5'));
     const totalSupply = await ft.totalSupply();
     expect(totalSupply).to.equal(ETH('75'));
+  });
+
+  it('BからAにNFTをtransferしたあとも残高が変化しない', async () => {
+    const transfer = await nft.connect(userB).transferFrom(userB.address, userA.address, BN(2));
+    await transfer.wait();
+    const balanceOfA = await ft.balanceOf(userA.address);
+    const balanceOfB = await ft.balanceOf(userB.address);
+    const totalSupply = await ft.totalSupply();
+    expect(balanceOfA).to.equal(ETH('5'));
+    expect(balanceOfB).to.equal(ETH('70'));
+    expect(totalSupply).to.equal(ETH('75'));
+  });
+
+  it('AがNFT2枚を65日間ステーキングする', async () => {
+    // 65 days later
+    const secInADay = 86400;
+    network.provider.send('evm_increaseTime', [secInADay * 65]);
+    network.provider.send('evm_mine');
+
+    const balanceOfA = await ft.balanceOf(userA.address);
+    const balanceOfB = await ft.balanceOf(userB.address);
+    const totalSupply = await ft.totalSupply();
+    expect(balanceOfA).to.equal(ETH('135'));
+    expect(balanceOfB).to.equal(ETH('70'));
+    expect(totalSupply).to.equal(ETH('205'));
   });
 });

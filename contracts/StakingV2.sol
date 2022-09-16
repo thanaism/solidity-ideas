@@ -16,6 +16,12 @@ interface IStakingNFT {
     function getTokenIds() external view returns (uint256[] memory);
 }
 
+interface IStakingFT {
+    function preserveStaking(address to) external;
+
+    function mint(address to, uint256 amount) external;
+}
+
 contract StakableFT is ERC20, Ownable {
     mapping(address => uint256) private _balances;
     uint256 private _totalSupply;
@@ -29,12 +35,16 @@ contract StakableFT is ERC20, Ownable {
         _mint(to, amount);
     }
 
-    function burn(uint256 amount) external {
-        _burn(_msgSender(), amount);
+    function preserveStaking(address account) external onlyOwner {
+        require(account != address(0), 'ERC20: mint to the zero address');
+        uint256 amount = _alpha(account);
+        unchecked {
+            _balances[account] += amount;
+        }
     }
 
-    function setNFT(address _address) external onlyOwner {
-        nft = _address;
+    function burn(uint256 amount) external {
+        _burn(_msgSender(), amount);
     }
 
     function setDaily(uint256 _amount) external onlyOwner {
@@ -44,10 +54,9 @@ contract StakableFT is ERC20, Ownable {
     constructor(
         string memory name,
         string memory symbol,
-        address _address,
         uint256 _amount
     ) ERC20(name, symbol) {
-        nft = _address;
+        nft = msg.sender;
         daily = _amount;
     }
 
@@ -63,6 +72,11 @@ contract StakableFT is ERC20, Ownable {
     }
 
     function balanceOf(address account) public view virtual override returns (uint256) {
+        uint256 alpha = _alpha(account);
+        return _balances[account] + alpha - adjustment[account];
+    }
+
+    function _alpha(address account) internal view returns (uint256) {
         uint256 alpha = 0;
         uint256[] memory tokens = IStakingNFT(nft).getUserTokens(account);
         for (uint256 i = 0; i < tokens.length; i++) {
@@ -70,7 +84,7 @@ contract StakableFT is ERC20, Ownable {
             uint256 duration = (block.timestamp - lastTransfer) / (1 days);
             alpha += duration * daily;
         }
-        return _balances[account] + alpha - adjustment[account];
+        return alpha;
     }
 
     function _transfer(
@@ -155,14 +169,19 @@ contract StakableNFT is ERC721, Ownable {
     mapping(uint256 => uint256) public lastTransfer;
     mapping(address => uint256[]) private userTokens;
     uint256[] private tokenIds;
-    address private _original;
+    address public original;
+    address public ft;
 
     constructor(
         string memory name,
         string memory symbol,
-        address original
+        address _original,
+        string memory ftName,
+        string memory ftSymbol,
+        uint256 daily
     ) ERC721(name, symbol) {
-        _original = original;
+        original = _original;
+        ft = address(new StakableFT(ftName, ftSymbol, daily));
     }
 
     /*
@@ -177,11 +196,11 @@ contract StakableNFT is ERC721, Ownable {
 
     function publicMint(uint256[] calldata _tokenIds) external {
         require(
-            IERC721(_original).balanceOf(msg.sender) > 0,
+            IERC721(original).balanceOf(msg.sender) > 0,
             'Must be a holder of original NFT collection'
         );
         for (uint256 i = 0; i < _tokenIds.length; i++) {
-            if (IERC721(_original).ownerOf(_tokenIds[i]) == msg.sender && !_exists(_tokenIds[i])) {
+            if (IERC721(original).ownerOf(_tokenIds[i]) == msg.sender && !_exists(_tokenIds[i])) {
                 _mint(msg.sender, _tokenIds[i]);
             }
         }
@@ -189,6 +208,10 @@ contract StakableNFT is ERC721, Ownable {
 
     function mint(address to, uint256 tokenId) external onlyOwner {
         _mint(to, tokenId);
+    }
+
+    function mintFT(address to, uint256 amount) external onlyOwner {
+        IStakingFT(ft).mint(to, amount);
     }
 
     function getUserTokens(address user) external view returns (uint256[] memory) {
@@ -204,6 +227,8 @@ contract StakableNFT is ERC721, Ownable {
         address to,
         uint256 tokenId
     ) internal override {
+        if (from != address(0)) IStakingFT(ft).preserveStaking(from);
+
         for (uint256 i = 0; i < userTokens[from].length; i++) {
             if (userTokens[from][i] == tokenId) {
                 if (i != userTokens[from].length - 1)

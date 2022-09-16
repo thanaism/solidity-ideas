@@ -1,6 +1,11 @@
 // SPDX-License-Identifier: Unlicense
 pragma solidity =0.8.4;
 
+/*
+There is a bug in this contract that causes the staked amount to be reset when the NFT is TRANSFERRED.
+StakingV2.sol resolves that issue.
+*/
+
 import '@openzeppelin/contracts/token/ERC721/ERC721.sol';
 import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
 import '@openzeppelin/contracts/access/Ownable.sol';
